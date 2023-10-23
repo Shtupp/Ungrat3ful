@@ -16,8 +16,8 @@ To - Do:
   	- Great Barrier Reef
   	- The Everglades
 
-  - Mission ideas:
-  	- Infiltrate area, destroy construction equipment
+- Mission ideas:
+	- Infiltrate area, destroy construction equipment
 	- Infiltrate area, kill target
 
    
