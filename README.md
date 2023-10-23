@@ -28,3 +28,5 @@ Seasons!
 - Pumpkin Spicecore character customizations
 
 - Peasant tide
+
+Unibomber Manifesto as religious artifact
