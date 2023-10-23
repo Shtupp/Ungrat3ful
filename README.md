@@ -14,8 +14,17 @@ To - Do:
   	- Previously undiscovered landmass?
   	- Antarctica
   	- Great Barrier Reef
+  	- The Everglades
 
   - Mission ideas:
   	- Infiltrate area, destroy construction equipment
 	- Infiltrate area, kill target
-        - 
+
+   
+- Graphics:
+	- Parallax 2D pixel art
+
+Seasons!
+- Pumpkin Spicecore character customizations
+
+- Peasant tide
