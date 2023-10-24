@@ -4,6 +4,7 @@ To - Do:
 
 - Tile-Based map
 	- Hexagonal
+  	- Overhead birds-eye view camera
 - "Dice" based randomization
 - Psychadelic based magic system
 - Drugs as healing items
@@ -23,6 +24,7 @@ To - Do:
    
 - Graphics:
 	- Parallax 2D pixel art
+  	- Over the shoulder 'Pokemon' style ui for selecting enemies to use an attack on
 
 Seasons!
 - Pumpkin Spicecore character customizations
@@ -30,3 +32,4 @@ Seasons!
 - Peasant tide
 
 Unibomber Manifesto as religious artifact
+
