@@ -1,8 +1,11 @@
+#include <iostream>
 #include <SDL.h>
+#include <SDL_image.h>
 #include <SDL_main.h>
 
 SDL_Window* window;
 SDL_Renderer* renderer;
+SDL_Texture* texture;
 SDL_Event event;
 bool isRunning = true;
 
@@ -40,20 +43,26 @@ void handleInput() {
 }
 
 void render() {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    // Draw your player at the updated (playerX, playerY) position.
+    // just playing with moving things around on the screen
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawLine(renderer, playerX, playerY, playerX + 50, playerY);
-    // Draw other elements here.
 
+    //rendering a tile
+    if (texture != nullptr) {
+      SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+    }
+
+    // Draw other elements here.
     SDL_RenderPresent(renderer);
+
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char* argv[]) {
     // Initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
@@ -67,9 +76,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Create a renderer
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    
+    // initialize the renderer variable (already declared globally)
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    // Load the test-tile PNG image
+    SDL_Surface* imageSurface = IMG_Load("assets/test-tile.png");
+    if (imageSurface == nullptr) {
+        // Handle error
+        SDL_Quit();
+        return 1;
+    }
+
+    // Create a texture from the loaded image
+    texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+    SDL_FreeSurface(imageSurface);
+
     if (!renderer) {
         SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         return 1;
