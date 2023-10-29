@@ -6,9 +6,12 @@
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Texture* testTile;
+SDL_Texture* plaOnePNG;
 SDL_Event event;
 bool isRunning = true;
 
+int plaOneX = 30;
+int plaOneY = 0;
 int playerX = 320; // Initial X position
 int playerY = 240; // Initial Y position
 
@@ -22,11 +25,27 @@ int numRows;
 //prototype functions here for scoping 
 void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, int** tilemap); 
 
+void HandleMouseClick(SDL_Event& event) {
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mouseX, mouseY;
+        SDL_GetMouseState(&mouseX, &mouseY);
+
+        // Convert mouse coordinates to tile coordinates.
+        int clickedTileX = mouseX / 100;
+        int clickedTileY = mouseY / 100;
+
+        // Teleport the character to the clicked tile.
+        plaOneX = clickedTileX * 100;
+        plaOneY = clickedTileY * 100;
+    }
+}
+
 void handleInput() {
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             isRunning = false;
         }
+        HandleMouseClick(event);
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
                 case SDLK_w:
@@ -52,6 +71,27 @@ void handleInput() {
     }
 }
 
+SDL_Texture* LoadImageAsTexture(const char* imagePath) {
+    // Load the image from the provided file path
+    SDL_Surface* imageSurface = IMG_Load(imagePath);
+    
+    if (imageSurface == nullptr) {
+        SDL_Log("Failed to load image from path. Check spelling. SDL_Error: %s\n", IMG_GetError());
+        throw 1;
+    }
+
+    // Create a texture from the loaded image
+    SDL_Texture* imageTexture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+    SDL_FreeSurface(imageSurface);
+
+    if (imageTexture == nullptr) {
+        SDL_Log("Failed to create texture from image. SDL_Error: %s\n", SDL_GetError());
+        throw 1;
+    }
+
+    return imageTexture;
+}
+
 void render() {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -61,6 +101,9 @@ void render() {
       //SDL_RenderCopy(renderer, testTile, nullptr, nullptr);
       RenderTileMap(renderer, testTile, 100, mapArr);
     }
+
+    SDL_Rect plaOneDest = {plaOneX, plaOneY, 41, 94};
+    SDL_RenderCopy(renderer, plaOnePNG, nullptr, &plaOneDest);
 
     // just playing with moving things around on the screen
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -139,17 +182,9 @@ int main(int argc, char* argv[]) {
     //the mapArr var is initialized here so it can be used to draw the map
     mapArr = initMapArr(winInitWidth, winInitHeight, 100);
 
-    // Load the tile-test PNG image
-    SDL_Surface* imageSurface = IMG_Load("assets/tile-test.png");
-    if (imageSurface == nullptr) {
-        throw std::runtime_error("Failed to load image (check ur file names & paths): " + std::string(IMG_GetError()));
-        SDL_Quit();
-        return 1;
-    }
+    testTile = LoadImageAsTexture("assets/tile-test.png");
+    plaOnePNG = LoadImageAsTexture("assets/ancp-male-test.png");
 
-    // Create a texture named testTile from the loaded image
-    testTile = SDL_CreateTextureFromSurface(renderer, imageSurface);
-    SDL_FreeSurface(imageSurface);
 
     if (!renderer) {
         SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
