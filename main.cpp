@@ -71,15 +71,20 @@ void render() {
 }
 
 void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, int** tileMap) {
+    SDL_Rect destRect;
     int mapHeight = sizeof(tileMap) / sizeof(tileMap[0]);
     int mapWidth = sizeof(tileMap[0]) / sizeof(tileMap[0][0]);
 
     // Iterate through the tileMap
     for (int y = 0; y < numCols; ++y) {
-        for (int x = 0; x < numRows; ++x) {
+        int rowLen = (y%2==1) ? numRows-2 : numRows;
+        for (int x = 0; x < rowLen; ++x) {
             // Calculate the source and destination rectangles for the current tile
-            SDL_Rect destRect = { x * tileWidth, y * tileWidth, tileWidth, tileWidth };
-
+            if (y%2==0) {
+                destRect = { x * tileWidth + (x*(tileWidth/2)), y * (tileWidth/2), tileWidth, tileWidth };
+            } else {
+                 destRect = { x * tileWidth + (x*(tileWidth/2)) + ((tileWidth/4)*3), y * tileWidth - (y*(tileWidth/2)), tileWidth, tileWidth };
+            }
             // Render the tile
             SDL_RenderCopy(renderer, tileset, nullptr, &destRect);
         }
@@ -91,7 +96,7 @@ void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, 
 int** initMapArr(int winWidth, int winHeight, int tileDem) {
     int** tessa;
     numRows = winWidth/tileDem;
-    numCols = winHeight/tileDem;
+    numCols = (winHeight/tileDem)*2;
 
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
@@ -155,7 +160,7 @@ int main(int argc, char* argv[]) {
         handleInput();
         render();
     }
-    std::cout << "checkpoint";
+    //std::cout << "checkpoint";
 
     // Cleanup and quit
     SDL_DestroyRenderer(renderer);
