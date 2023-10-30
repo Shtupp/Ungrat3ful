@@ -11,11 +11,11 @@ SDL_Event event;
 bool isRunning = true;
 
 int plaOneX = 30;
-int plaOneY = 0;
+int plaOneY = 3;
 int playerX = 320; // Initial X position
 int playerY = 240; // Initial Y position
 
-int winInitWidth = 800;
+int winInitWidth = 850;
 int winInitHeight = 600;
 
 int** mapArr;
@@ -23,20 +23,36 @@ int numCols;
 int numRows;
 
 //prototype functions here for scoping 
-void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, int** tilemap); 
+void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, int** tilemap);
+
+// Function to modify the player's x and y coordinates
+// In the future, could be improved by passing a player object as one of the paramater variables and modifying that directly
+void movePlayer(int x, int y) {
+    plaOneX += x;
+    plaOneY += y;
+}
 
 void HandleMouseClick(SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mouseX, mouseY;
         SDL_GetMouseState(&mouseX, &mouseY);
 
-        // Convert mouse coordinates to tile coordinates.
-        int clickedTileX = mouseX / 100;
-        int clickedTileY = mouseY / 100;
+        // Move the character to the adjacent tile in the clicked direction.
+        if ((mouseY > plaOneY + 47) && (abs(mouseX - plaOneX) < 50)) {
+            movePlayer(0, 100);
+        }
+        else if ((mouseY < plaOneY + 47) && (abs(mouseX - plaOneX) < 50)) {
+            movePlayer(0, -100);
+        }
+        else if ((mouseY > plaOneY + 47) && (mouseX > plaOneX + 20))
+            movePlayer(75, 50);
+        else if ((mouseY < plaOneY + 47) && (mouseX > plaOneX + 20))
+            movePlayer(75, -50);
+        else if ((mouseY < plaOneY + 47) && (mouseX < plaOneX + 20))
+            movePlayer(-75, -50);
+        else if ((mouseY > plaOneY + 47) && (mouseX < plaOneX + 20))
+            movePlayer(-75, 50);
 
-        // Teleport the character to the clicked tile.
-        plaOneX = clickedTileX * 100;
-        plaOneY = clickedTileY * 100;
     }
 }
 
@@ -48,24 +64,24 @@ void handleInput() {
         HandleMouseClick(event);
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
-                case SDLK_w:
-                    // Move up
-                    playerY -= 10;
-                    break;
-                case SDLK_a:
-                    // Move left
-                    playerX -= 10;
-                    break;
-                case SDLK_s:
-                    // Move down
-                    playerY += 10;
-                    break;
-                case SDLK_d:
-                    // Move right
-                    playerX += 10;
-                    break;
-                default:
-                    break;
+            case SDLK_w:
+                // Move up
+                playerY -= 10;
+                break;
+            case SDLK_a:
+                // Move left
+                playerX -= 10;
+                break;
+            case SDLK_s:
+                // Move down
+                playerY += 10;
+                break;
+            case SDLK_d:
+                // Move right
+                playerX += 10;
+                break;
+            default:
+                break;
             }
         }
     }
@@ -74,7 +90,7 @@ void handleInput() {
 SDL_Texture* LoadImageAsTexture(const char* imagePath) {
     // Load the image from the provided file path
     SDL_Surface* imageSurface = IMG_Load(imagePath);
-    
+
     if (imageSurface == nullptr) {
         SDL_Log("Failed to load image from path. Check spelling. SDL_Error: %s\n", IMG_GetError());
         throw 1;
@@ -98,11 +114,11 @@ void render() {
 
     //rendering the map. I suspect this is inefficient. need to find how to just render "statically" 
     if (testTile != nullptr) {
-      //SDL_RenderCopy(renderer, testTile, nullptr, nullptr);
-      RenderTileMap(renderer, testTile, 100, mapArr);
+        //SDL_RenderCopy(renderer, testTile, nullptr, nullptr);
+        RenderTileMap(renderer, testTile, 100, mapArr);
     }
 
-    SDL_Rect plaOneDest = {plaOneX, plaOneY, 41, 94};
+    SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
     SDL_RenderCopy(renderer, plaOnePNG, nullptr, &plaOneDest);
 
     // just playing with moving things around on the screen
@@ -120,13 +136,14 @@ void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, 
 
     // Iterate through the tileMap
     for (int y = 0; y < numCols; ++y) {
-        int rowLen = (y%2==1) ? numRows-2 : numRows;
+        int rowLen = (y % 2 == 1) ? numRows - 2 : numRows;
         for (int x = 0; x < rowLen; ++x) {
             // Calculate the source and destination rectangles for the current tile
-            if (y%2==0) {
-                destRect = { x * tileWidth + (x*(tileWidth/2)), y * (tileWidth/2), tileWidth, tileWidth };
-            } else {
-                 destRect = { x * tileWidth + (x*(tileWidth/2)) + ((tileWidth/4)*3), y * tileWidth - (y*(tileWidth/2)), tileWidth, tileWidth };
+            if (y % 2 == 0) {
+                destRect = { x * tileWidth + (x * (tileWidth / 2)), y * (tileWidth / 2), tileWidth, tileWidth };
+            }
+            else {
+                destRect = { x * tileWidth + (x * (tileWidth / 2)) + ((tileWidth / 4) * 3), y * tileWidth - (y * (tileWidth / 2)), tileWidth, tileWidth };
             }
             // Render the tile
             SDL_RenderCopy(renderer, tileset, nullptr, &destRect);
@@ -138,14 +155,14 @@ void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, 
 //POTENTIAL FOR MEMORY LEAKS BE CAREFUL
 int** initMapArr(int winWidth, int winHeight, int tileDem) {
     int** tessa;
-    numRows = winWidth/tileDem;
-    numCols = (winHeight/tileDem)*2;
+    numRows = winWidth / tileDem;
+    numCols = (winHeight / tileDem) * 2;
 
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
 
     // Allocate memory for the array (my baby tessa).
-    tessa = new int*[numRows];
+    tessa = new int* [numRows];
     for (int i = 0; i < numRows; i++) {
         tessa[i] = new int[numCols];
     }
@@ -203,7 +220,7 @@ int main(int argc, char* argv[]) {
     SDL_Quit();
 
     // Don't forget to deallocate the memory when you're done.
-    for (int i = 0; i < winInitHeight/100; i++) {
+    for (int i = 0; i < winInitHeight / 100; i++) {
         delete[] mapArr[i];
     }
     delete[] mapArr;
