@@ -30,27 +30,55 @@ int numRows;
 //prototype functions here for scoping 
 void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, int** tilemap);
 
-// Function to modify the player's x and y coordinates
-// In the future, could be improved by passing a player object as one of the paramater variables and modifying that directly
-void movePlayer(int x, int y) {
-    plaOneX += x;
-    plaOneY += y;
+// Function to modify an object's x and y coordinates
+void transformObj(int x, int y, int& objX, int& objY) {
+    objX += x;
+    objY += y;
+}
+
+// Function for efficiently moving an npc object a given amount of tiles toward a specific point
+void moveNPC(int objX, int objY, int tgtX, int tgtY, int tiles) {
+
+    for (int i = 0; i <= tiles; i++) {
+        if ((abs(tgtX - objX) < 75) && (abs(objY - tgtY) < 50)) {
+            //Exit the loop early if the object has already reached the destination
+            i += tiles;
+        }
+        else {
+            //This detection for direction is currently using the same method for determining the center of the hexagon as the player movement in HandleMousClick
+            //(adding 47 to the y value of the object and 20 to the x value of the object)
+            //This is because of the manner in which the standard human png is positioned on the hexagon, and may need be updated later to account for other objects
+            if ((tgtY > objY + 47) && (abs(tgtX - objX) < 50))
+                transformObj(0, 100, objX, objY);
+            else if ((tgtY < objY + 47) && (abs(tgtX - objX) < 50))
+                transformObj(0, -100, objX, objY);
+            else if ((tgtY > objY + 47) && (tgtX > objX + 20))
+                transformObj(75, 50, objX, objY);
+            else if ((tgtY < objY + 47) && (tgtX > objX + 20))
+                transformObj(75, -50, objX, objY);
+            else if ((tgtY < objY + 47) && (tgtX < objX + 20))
+                transformObj(-75, -50, objX, objY);
+            else if ((tgtY > objY + 47) && (tgtX < objX + 20))
+                transformObj(-75, 50, objX, objY);
+        }
+    }
+
 }
 
 void HandleMouseClick() {
     // Move the character to the adjacent tile in the clicked direction.
     if ((cursorY > plaOneY + 47) && (abs(cursorX - plaOneX) < 50))
-        movePlayer(0, 100);
+        transformObj(0, 100, plaOneX, plaOneY);
     else if ((cursorY < plaOneY + 47) && (abs(cursorX - plaOneX) < 50))
-        movePlayer(0, -100);
+        transformObj(0, -100, plaOneX, plaOneY);
     else if ((cursorY > plaOneY + 47) && (cursorX > plaOneX + 20))
-        movePlayer(75, 50);
+        transformObj(75, 50, plaOneX, plaOneY);
     else if ((cursorY < plaOneY + 47) && (cursorX > plaOneX + 20))
-        movePlayer(75, -50);
+        transformObj(75, -50, plaOneX, plaOneY);
     else if ((cursorY < plaOneY + 47) && (cursorX < plaOneX + 20))
-        movePlayer(-75, -50);
+        transformObj(-75, -50, plaOneX, plaOneY);
     else if ((cursorY > plaOneY + 47) && (cursorX < plaOneX + 20))
-        movePlayer(-75, 50);
+        transformObj(-75, 50, plaOneX, plaOneY);
 }
 
 void detectCursorTile() {
@@ -78,11 +106,11 @@ void detectCursorTile() {
     if (cursorX >= 0 && cursorY >= 0 && adjustedCursorX - column <= 1 && adjustedCursorY - row <= 1) {
         //(row%2==0) ? activePos[1] = row : activePos[1] = row - 2;
         activePos[1] = row;
-        (column%2==1) ? activePos[0] = column : activePos[0] = column - 2;
+        (column % 2 == 1) ? activePos[0] = column : activePos[0] = column - 2;
         std::cout << "column: " << activePos[0] << std::endl;
         std::cout << "row: " << activePos[1] << std::endl;
 
-    } 
+    }
 }
 
 void handleInput() {
