@@ -2,13 +2,18 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_main.h>
+#include <array>
 
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Texture* testTile;
+SDL_Texture* activeTile;
 SDL_Texture* plaOnePNG;
 SDL_Event event;
 bool isRunning = true;
+int cursorX;
+int cursorY;
+std::array<int, 2> activePos;
 
 int plaOneX = 30;
 int plaOneY = 3;
@@ -32,36 +37,69 @@ void movePlayer(int x, int y) {
     plaOneY += y;
 }
 
-void HandleMouseClick(SDL_Event& event) {
-    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        int mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY);
+void HandleMouseClick() {
+    // Move the character to the adjacent tile in the clicked direction.
+    if ((cursorY > plaOneY + 47) && (abs(cursorX - plaOneX) < 50))
+        movePlayer(0, 100);
+    else if ((cursorY < plaOneY + 47) && (abs(cursorX - plaOneX) < 50))
+        movePlayer(0, -100);
+    else if ((cursorY > plaOneY + 47) && (cursorX > plaOneX + 20))
+        movePlayer(75, 50);
+    else if ((cursorY < plaOneY + 47) && (cursorX > plaOneX + 20))
+        movePlayer(75, -50);
+    else if ((cursorY < plaOneY + 47) && (cursorX < plaOneX + 20))
+        movePlayer(-75, -50);
+    else if ((cursorY > plaOneY + 47) && (cursorX < plaOneX + 20))
+        movePlayer(-75, 50);
+}
 
-        // Move the character to the adjacent tile in the clicked direction.
-        if ((mouseY > plaOneY + 47) && (abs(mouseX - plaOneX) < 50)) {
-            movePlayer(0, 100);
-        }
-        else if ((mouseY < plaOneY + 47) && (abs(mouseX - plaOneX) < 50)) {
-            movePlayer(0, -100);
-        }
-        else if ((mouseY > plaOneY + 47) && (mouseX > plaOneX + 20))
-            movePlayer(75, 50);
-        else if ((mouseY < plaOneY + 47) && (mouseX > plaOneX + 20))
-            movePlayer(75, -50);
-        else if ((mouseY < plaOneY + 47) && (mouseX < plaOneX + 20))
-            movePlayer(-75, -50);
-        else if ((mouseY > plaOneY + 47) && (mouseX < plaOneX + 20))
-            movePlayer(-75, 50);
+void detectCursorTile() {
+    // Adjust for the hexagonal grid layout.
+    float tileWidth = 100.0f;  // Hexagonal tiles are typically 1.5 times as wide as they are tall.
+    float tileHeight = 100.0f; // Height is the square root of 3 times the width.
 
-    }
+    // Adjust the cursor position.
+    //destRect = { x * tileWidth + (x * (tileWidth / 2)) + ((tileWidth / 4) * 3), y * tileWidth - (y * (tileWidth / 2)), tileWidth, tileWidth };
+    //float adjustedCursorX = ((cursorX / tileWidth) + (cursorX/(tileWidth/2))); 
+
+    float adjustedCursorX = cursorX / tileWidth;
+    float adjustedCursorY = cursorY / tileHeight;
+
+    // Calculate the row and column.
+    int column = static_cast<int>(adjustedCursorX);
+    int row = static_cast<int>(adjustedCursorY);
+
+    // Adjust the column for odd rows.
+    //if (row % 2 == 1) {
+    //    column -= 1;
+    //}
+
+    // Determine if the cursor is in a valid hexagon.
+    if (cursorX >= 0 && cursorY >= 0 && adjustedCursorX - column <= 1 && adjustedCursorY - row <= 1) {
+        //(row%2==0) ? activePos[1] = row : activePos[1] = row - 2;
+        activePos[1] = row;
+        (column%2==1) ? activePos[0] = column : activePos[0] = column - 2;
+        std::cout << "column: " << activePos[0] << std::endl;
+        std::cout << "row: " << activePos[1] << std::endl;
+
+    } 
 }
 
 void handleInput() {
+    int newMouseX, newMouseY;
+    SDL_GetMouseState(&newMouseX, &newMouseY);
+    if (cursorX != newMouseX || cursorY != newMouseY) {
+        cursorX = newMouseX;
+        cursorY = newMouseY;
+        detectCursorTile();
+    }
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             isRunning = false;
         }
-        HandleMouseClick(event);
+        if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+            HandleMouseClick();
+        }
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
             case SDLK_w:
@@ -147,6 +185,7 @@ void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, 
             }
             // Render the tile
             SDL_RenderCopy(renderer, tileset, nullptr, &destRect);
+            if (x == activePos[0] && y == activePos[1]) SDL_RenderCopy(renderer, activeTile, nullptr, &destRect);
         }
     }
 }
@@ -201,7 +240,7 @@ int main(int argc, char* argv[]) {
 
     testTile = LoadImageAsTexture("assets/tile-test.png");
     plaOnePNG = LoadImageAsTexture("assets/ancp-male-test.png");
-
+    activeTile = LoadImageAsTexture("assets/active-tile-test.png");
 
     if (!renderer) {
         SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
