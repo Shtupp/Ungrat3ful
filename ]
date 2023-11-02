@@ -41,24 +41,18 @@ void transformObj(int x, int y, int& objX, int& objY) {
 // https://www.redblobgames.com/grids/hexagons/implementation.html#hex
 // the int w parameter is used to distinguish between positions and vectors. Not useful yet but worth keeping around
 template <typename Number, int w>
-struct _Hex {
+struct Hex {
     union {
         const Number v[3];
         struct { const Number q, r, s; };
     };
 
-    bool operator==(const _Hex& other) const {
-        return q == other.q && r == other.r && s == other.s;
-    }
-    _Hex(Number q_, Number r_) : v{q_, r_, -q_ - r_} {}
-    _Hex(Number q_, Number r_, Number s_) : v{q_, r_, s_} {}
+    Hex(Number q_, Number r_) : v{q_, r_, -q_ - r_} {}
+    Hex(Number q_, Number r_, Number s_) : v{q_, r_, s_} {}
 };
 
-using Hex = _Hex<int, 1>;
-using FracHex = _Hex<double, 1>;
-
 struct HexHash {
-    std::size_t operator()(const Hex& hex) const {
+    std::size_t operator()(const Hex<int, 1>& hex) const {
         std::size_t seed = 0;
         // Combine the hashes of q, r, and s using a hash combining function
         boost::hash_combine(seed, hex.q);
@@ -69,19 +63,19 @@ struct HexHash {
 };
 
 // should be in the file's header but oh well
-std::unordered_set<Hex, HexHash> mapSet;
+std::unordered_set<Hex<int, 1>, HexHash> mapArr;
 
 // https://www.redblobgames.com/grids/hexagons/implementation.html#hex-arithmetic
-Hex hex_subtract(Hex a, Hex b) {
-    return Hex(a.q - b.q, a.r - b.r, a.s - b.s);
+Hex<int, 1> hex_subtract(Hex<int, 1> a, Hex<int, 1> b) {
+    return Hex<int, 1>(a.q - b.q, a.r - b.r, a.s - b.s);
 }
 
 // https://www.redblobgames.com/grids/hexagons/implementation.html#hex-distance
-int hex_length(Hex hex) {
+int hex_length(Hex<int, 1> hex) {
     return int((abs(hex.q) + abs(hex.r) + abs(hex.s)) / 2);
 }
 
-int hex_distance(Hex a, Hex b) {
+int hex_distance(Hex<int, 1> a, Hex<int, 1> b) {
     return hex_length(hex_subtract(a, b));
 }
 
@@ -122,7 +116,7 @@ struct Layout {
 };
 
 // https://www.redblobgames.com/grids/hexagons/implementation.html#hex-to-pixel
-Point hex_to_pixel(Layout layout, Hex h) {
+Point hex_to_pixel(Layout layout, Hex<int, 1> h) {
     const Orientation& M = layout.orientation;
     double x = (M.f0 * h.q + M.f1 * h.r) * layout.size.x;
     double y = (M.f2 * h.q + M.f3 * h.r) * layout.size.y;
@@ -130,17 +124,17 @@ Point hex_to_pixel(Layout layout, Hex h) {
 }
 
 // https://www.redblobgames.com/grids/hexagons/implementation.html#pixel-to-hex
-FracHex pixel_to_hex(Layout layout, Point p) {
+Hex<double, 1> pixel_to_hex(Layout layout, Point p) {
     const Orientation& M = layout.orientation;
     Point pt = Point((p.x - layout.origin.x) / layout.size.x,
                      (p.y - layout.origin.y) / layout.size.y);
     double q = M.b0 * pt.x + M.b1 * pt.y;
     double r = M.b2 * pt.x + M.b3 * pt.y;
-    return FracHex(q, r, -q - r);
+    return Hex<double, 1>(q, r, -q - r);
 }
 
 // https://www.redblobgames.com/grids/hexagons/implementation.html#rounding
-Hex hex_round(FracHex h) {
+Hex<int, 1> hex_round(Hex<double, 1> h) {
     int q = int(round(h.q));
     int r = int(round(h.r));
     int s = int(round(h.s));
@@ -154,13 +148,13 @@ Hex hex_round(FracHex h) {
     } else {
         s = -q - r;
     }
-    return Hex(q, r, s);
+    return Hex<int, 1>(q, r, s);
 }
 
 //map storage www.redblobgames.com/grids/hexagons/implementation.html#map-storage
 namespace std {
-    template <> struct hash<Hex> {
-        size_t operator()(const Hex& h) const {
+    template <> struct hash<Hex<int, 1>> {
+        size_t operator()(const Hex<int, 1>& h) const {
             hash<int> int_hash;
             size_t hq = int_hash(h.q);
             size_t hr = int_hash(h.r);
@@ -261,6 +255,28 @@ void handleInput() {
         if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
             HandleMouseClick();
         }
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+            case SDLK_w:
+                // Move up
+                playerY -= 10;
+                break;
+            case SDLK_a:
+                // Move left
+                playerX -= 10;
+                break;
+            case SDLK_s:
+                // Move down
+                playerY += 10;
+                break;
+            case SDLK_d:
+                // Move right
+                playerX += 10;
+                break;
+            default:
+                break;
+            }
+        }
     }
 }
 
@@ -284,16 +300,12 @@ SDL_Texture* LoadImageAsTexture(const char* imagePath) {
 
     return imageTexture;
 }
-void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, std::unordered_set<Hex, HexHash> tileMap) {
+void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, unordered_set<Hex<int,1>> tileMap) {
     SDL_Rect destRect;
-    // notice the values 50,57 for the tile size. I found these values through trail and error. We need to find a way to calculate these values based on the tile .png dimensions, or etc.
-    Layout flatLayout(layout_flat, Point(50,57), Point(0,0));
 
-    for (Hex tile : tileMap) {
-        Point p = hex_to_pixel(flatLayout, tile);
-        int x = p.x; //converting these doubles to ints
-        int y = p.y;
-        destRect = {x, y, 100, 100};
+    for (Hex<int,1> tile : tileMap) {
+        Point p = hex_to_pixel(Layout(layout_flat, Point(100,100), Point(0,0)), tile);
+        destRect = {p.x, p.y, 100, 100}
         SDL_RenderCopy(renderer, tileset, nullptr, &destRect);
     }
 }
@@ -302,33 +314,72 @@ void render() {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_RenderClear(renderer);
 
+    //rendering the map. I suspect this is inefficient. need to find how to just render "statically" 
     if (testTile != nullptr) {
-        RenderTileMap(renderer, testTile, 100, mapSet);
+        //SDL_RenderCopy(renderer, testTile, nullptr, nullptr);
+        RenderTileMap(renderer, testTile, 100, mapArr);
     }
 
     SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
     SDL_RenderCopy(renderer, plaOnePNG, nullptr, &plaOneDest);
 
+    // just playing with moving things around on the screen
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawLine(renderer, playerX, playerY, playerX + 50, playerY);
+
+    // Draw other elements here.
     SDL_RenderPresent(renderer);
 }
 
-std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int tileDem) {
-    std::unordered_set<Hex, HexHash> map;
+    //int mapHeight = sizeof(tileMap) / sizeof(tileMap[0]);
+    //int mapWidth = sizeof(tileMap[0]) / sizeof(tileMap[0][0]);
+
+//    int mapHeight = winHeight / tileDem;
+//    int mapWidth = winWidth / tileDem;
+//    // Iterate through the tileMap
+//    for (int y = 0; y < mapHeight; ++y) {
+//        //int rowLen = (y % 2 == 1) ? numRows - 2 : numRows;
+//        for (int x = 0; x < mapWidth; ++x) {
+//            // Calculate the source and destination rectangles for the current tile
+//            if (y % 2 == 0) {
+//                destRect = { x * tileWidth + (x * (tileWidth / 2)), y * (tileWidth / 2), tileWidth, tileWidth };
+//            }
+//            else {
+//                destRect = { x * tileWidth + (x * (tileWidth / 2)) + ((tileWidth / 4) * 3), y * tileWidth - (y * (tileWidth / 2)), tileWidth, tileWidth };
+//            }
+//            // Render the tile
+//            SDL_RenderCopy(renderer, tileset, nullptr, &destRect);
+//            if (x == activePos[0] && y == activePos[1]) SDL_RenderCopy(renderer, activeTile, nullptr, &destRect);
+//        }
+//    }
+
+
+//here we initialize the mapArr var using dynamic memory allocation
+//POTENTIAL FOR MEMORY LEAKS BE CAREFUL
+std::unordered_set<Hex<int, 1>> initMapSet(int winWidth, int winHeight, int tileDem) {
+    std::unordered_set<Hex<int, 1>> map;
+    //int** tessa;
     numRows = winHeight / tileDem;
     numCols = (winWidth / tileDem);
 
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
 
+    // Allocate memory for the array (my baby tessa).
+    //tessa = new int* [numRows];
+    //for (int i = 0; i < numRows; i++) {
+    //    tessa[i] = new int[numCols];
+    //}
+
     // Initialize the array.
     for (int i = 0; i < numRows; i++) {
         int oddRowOffset = floor(i/2.0);
         std::cout << "oddRowOffset: " << oddRowOffset << std::endl;
         for (int j = 0; j < numCols - oddRowOffset; j++) {
-            int s = -i-j;
-            map.insert(Hex(i, j, s));
+            map.insert(Hex<int, 1>(i,j,-i-j));
         }
     }
+
     return map;
 }
 
@@ -351,8 +402,12 @@ int main(int argc, char* argv[]) {
     // initialize the renderer variable (already declared globally)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    //the mapSet var is initialized here so it can be used to draw the map
+    //the mapArr var is initialized here so it can be used to draw the map
     mapSet = initMapSet(winInitWidth, winInitHeight, 100);
+    //Point origin = Point(0,0);
+    //Point size = Point(100,100)
+    Layout(layout_flat, Point(100,100), Point(0,0))
+
 
     testTile = LoadImageAsTexture("assets/tile-test.png");
     plaOnePNG = LoadImageAsTexture("assets/ancp-male-test.png");
@@ -367,11 +422,18 @@ int main(int argc, char* argv[]) {
         handleInput();
         render();
     }
+    //std::cout << "checkpoint";
 
     // Cleanup and quit
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    // Don't forget to deallocate the memory when you're done.
+    for (int i = 0; i < winInitHeight / 100; i++) {
+        delete[] mapArr[i];
+    }
+    delete[] mapArr;
 
     return 0;
 }
