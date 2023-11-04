@@ -356,7 +356,7 @@ int main(int argc, char* argv[]) {
     mapSet = initMapSet(winInitWidth, winInitHeight, 100);
 
     testTile = LoadImageAsTexture("assets/tile-test.png");
-    plaOnePNG = LoadImageAsTexture("assets/ancp-male-test.png");
+    plaOnePNG = LoadImageAsTexture("assets/ancp-male-test-big.png");
     activeTile = LoadImageAsTexture("assets/active-tile-test.png");
 
     if (!renderer) {
