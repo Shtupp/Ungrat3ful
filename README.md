@@ -33,3 +33,26 @@ Seasons!
 
 Unibomber Manifesto as religious artifact
 
+Class system:
+
+Archer/crossbow class:
+Can ignore enemy cover and obstacles 
+Good movement points
+
+Heavy:
+Has more explosives
+Low movement points
+Explodes if killed
+
+Assault:
+Shotgun and sword
+Most movement points
+
+Hacker:
+Can hack robotic enemies
+Low health and average movement
+
+Medic:
+Can heal adjacent units
+medic used anything but bandages to heal units. All healing drugs cause debuffs to the healed unit.
+High health and average movement
