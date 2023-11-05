@@ -6,12 +6,10 @@
 #include <array>
 #include <unordered_set>
 #include <boost/functional/hash.hpp>
+#include <random>
 
 SDL_Window* window;
 SDL_Renderer* renderer;
-SDL_Texture* testTile;
-SDL_Texture* activeTile;
-SDL_Texture* plaOnePNG;
 SDL_Event event;
 bool isRunning = true;
 int cursorX;
@@ -22,9 +20,6 @@ int plaOneX = 30;
 int plaOneY = 3;
 int playerX = 320; // Initial X position
 int playerY = 240; // Initial Y position
-
-int winInitWidth = 850;
-int winInitHeight = 600;
 
 int numCols;
 int numRows;
@@ -47,11 +42,17 @@ struct _Hex {
         struct { const Number q, r, s; };
     };
 
+    std::string decoration;
+
     bool operator==(const _Hex& other) const {
         return q == other.q && r == other.r && s == other.s;
     }
-    _Hex(Number q_, Number r_) : v{q_, r_, -q_ - r_} {}
-    _Hex(Number q_, Number r_, Number s_) : v{q_, r_, s_} {}
+    _Hex(Number q_, Number r_) : v{q_, r_, -q_ - r_} {
+        decoration = "";
+    }
+    _Hex(Number q_, Number r_, Number s_) : v{q_, r_, s_} {
+        decoration = "";
+    }
 };
 
 using Hex = _Hex<int, 1>;
@@ -284,9 +285,11 @@ SDL_Texture* LoadImageAsTexture(const char* imagePath) {
 
     return imageTexture;
 }
-void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, std::unordered_set<Hex, HexHash> tileMap) {
+void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures, int tileWidth, std::unordered_set<Hex, HexHash> tileMap) {
     SDL_Rect destRect;
-    // notice the values 50,57 for the tile size. I found these values through trail and error. We need to find a way to calculate these values based on the tile .png dimensions, or etc.
+
+
+    // notice the values 50,57 for the tile size. I found these values through trial and error. We need to find a way to calculate these values based on the tile .png dimensions, or etc.
     Layout flatLayout(layout_flat, Point(50,57), Point(0,0));
 
     for (Hex tile : tileMap) {
@@ -294,20 +297,25 @@ void RenderTileMap(SDL_Renderer* renderer, SDL_Texture* tileset, int tileWidth, 
         int x = p.x; //converting these doubles to ints
         int y = p.y;
         destRect = {x, y, 100, 100};
-        SDL_RenderCopy(renderer, tileset, nullptr, &destRect);
+        SDL_RenderCopy(renderer, textures[0], nullptr, &destRect);
+        if (tile.decoration == "birch") {
+            SDL_RenderCopy(renderer, textures[3], nullptr, &destRect);
+        } else if (tile.decoration == "tree") {
+            SDL_RenderCopy(renderer, textures[4], nullptr, &destRect);
+        }
     }
 }
 
-void render() {
+void render(const std::vector<SDL_Texture*>& textures) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    if (testTile != nullptr) {
-        RenderTileMap(renderer, testTile, 100, mapSet);
+    if (textures[0] != nullptr) {
+        RenderTileMap(renderer, textures, 100, mapSet);
     }
 
     SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
-    SDL_RenderCopy(renderer, plaOnePNG, nullptr, &plaOneDest);
+    SDL_RenderCopy(renderer, textures[1], nullptr, &plaOneDest);
 
     SDL_RenderPresent(renderer);
 }
@@ -320,13 +328,22 @@ std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int til
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
 
+    //setup the random number gen
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
     // Initialize the array.
     for (int i = 0; i < numRows; i++) {
         int oddRowOffset = floor(i/2.0);
         std::cout << "oddRowOffset: " << oddRowOffset << std::endl;
         for (int j = 0; j < numCols - oddRowOffset; j++) {
             int s = -i-j;
-            map.insert(Hex(i, j, s));
+            Hex tempHex(i, j, s);
+            double ranVal = dis(gen);
+            if (ranVal > 0.9) tempHex.decoration = "birch";
+            else if (ranVal > 0.7) tempHex.decoration = "tree";
+            map.insert(tempHex);
         }
     }
     return map;
@@ -340,36 +357,49 @@ int main(int argc, char* argv[]) {
     }
 
     // Create a window
-    SDL_Window* window = SDL_CreateWindow("local man forced to fight robots on a hex grid",
-        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, 0);
+    SDL_Window* window = SDL_CreateWindow("Based aspect ratio (4:3)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
+    //SDL_Window* window = SDL_CreateWindow("local man forced to fight robots on a hex grid",
+    //    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, 0);
 
     if (!window) {
         SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
+    //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 
-    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
     // initialize the renderer variable (already declared globally)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-    //the mapSet var is initialized here so it can be used to draw the map
-    mapSet = initMapSet(winInitWidth, winInitHeight, 100);
-
-    testTile = LoadImageAsTexture("assets/tile-test.png");
-    plaOnePNG = LoadImageAsTexture("assets/ancp-male-test-big.png");
-    activeTile = LoadImageAsTexture("assets/active-tile-test.png");
-
     if (!renderer) {
         SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
 
+    //the mapSet var is initialized here so it can be used to draw the map
+    mapSet = initMapSet(800, 600, 100);
+
+    //loading textures into the texture vector :)
+    std::vector<std::string> imagePaths = {
+        "assets/tile-test.png",
+        "assets/ancp-male-std-one.png",
+        "assets/active-tile-test.png",
+        "assets/cvr-birch-test.png",
+        "assets/cvr-tree-test.png"
+    };
+    std::vector<SDL_Texture*> textures;
+    for (const std::string& path : imagePaths) {
+        SDL_Texture* texture = LoadImageAsTexture(path.c_str());
+        textures.push_back(texture);
+    }
+
     while (isRunning) {
         handleInput();
-        render();
+        render(textures);
     }
 
     // Cleanup and quit
+    for (SDL_Texture* texture : textures) {
+        SDL_DestroyTexture(texture);
+    }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
