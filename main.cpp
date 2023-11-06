@@ -215,45 +215,12 @@ void HandleMouseClick() {
         transformObj(-75, 50, plaOneX, plaOneY);
 }
 
-void detectCursorTile() {
-    // Adjust for the hexagonal grid layout.
-    float tileWidth = 100.0f;  // Hexagonal tiles are typically 1.5 times as wide as they are tall.
-    float tileHeight = 100.0f; // Height is the square root of 3 times the width.
-
-    // Adjust the cursor position.
-    //destRect = { x * tileWidth + (x * (tileWidth / 2)) + ((tileWidth / 4) * 3), y * tileWidth - (y * (tileWidth / 2)), tileWidth, tileWidth };
-    //float adjustedCursorX = ((cursorX / tileWidth) + (cursorX/(tileWidth/2))); 
-
-    float adjustedCursorX = cursorX / tileWidth;
-    float adjustedCursorY = cursorY / tileHeight;
-
-    // Calculate the row and column.
-    int column = static_cast<int>(adjustedCursorX);
-    int row = static_cast<int>(adjustedCursorY);
-
-    // Adjust the column for odd rows.
-    //if (row % 2 == 1) {
-    //    column -= 1;
-    //}
-
-    // Determine if the cursor is in a valid hexagon.
-    if (cursorX >= 0 && cursorY >= 0 && adjustedCursorX - column <= 1 && adjustedCursorY - row <= 1) {
-        //(row%2==0) ? activePos[1] = row : activePos[1] = row - 2;
-        activePos[1] = row;
-        (column % 2 == 1) ? activePos[0] = column : activePos[0] = column - 2;
-        std::cout << "column: " << activePos[0] << std::endl;
-        std::cout << "row: " << activePos[1] << std::endl;
-
-    }
-}
-
 void handleInput() {
     int newMouseX, newMouseY;
     SDL_GetMouseState(&newMouseX, &newMouseY);
     if (cursorX != newMouseX || cursorY != newMouseY) {
         cursorX = newMouseX;
         cursorY = newMouseY;
-        detectCursorTile();
     }
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
@@ -298,6 +265,9 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
         int y = p.y;
         destRect = {x, y, 100, 100};
         SDL_RenderCopy(renderer, textures[0], nullptr, &destRect);
+        if (tile == hex_round(pixel_to_hex(flatLayout, Point(cursorX-50, cursorY-50)))) {
+            SDL_RenderCopy(renderer, textures[2], nullptr, &destRect);
+        }
         if (tile.decoration == "birch") {
             SDL_RenderCopy(renderer, textures[3], nullptr, &destRect);
         } else if (tile.decoration == "tree") {
@@ -322,9 +292,10 @@ void render(const std::vector<SDL_Texture*>& textures) {
 
 std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int tileDem) {
     std::unordered_set<Hex, HexHash> map;
-    numRows = winHeight / tileDem;
-    numCols = (winWidth / tileDem);
-
+    //numRows = winHeight / tileDem;
+    //numCols = (winWidth / tileDem);
+    numRows = 22;
+    numCols = 22;
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
 
@@ -335,9 +306,9 @@ std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int til
 
     // Initialize the array.
     for (int i = 0; i < numRows; i++) {
-        int oddRowOffset = floor(i/2.0);
-        std::cout << "oddRowOffset: " << oddRowOffset << std::endl;
-        for (int j = 0; j < numCols - oddRowOffset; j++) {
+        //int oddRowOffset = floor(i/2.0);
+        //std::cout << "oddRowOffset: " << oddRowOffset << std::endl;
+        for (int j = 0; j < numCols; j++) {
             int s = -i-j;
             Hex tempHex(i, j, s);
             double ranVal = dis(gen);
