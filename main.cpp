@@ -12,6 +12,7 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Event event;
 bool isRunning = true;
+bool mapMode = true;
 int cursorX;
 int cursorY;
 std::array<int, 2> activePos;
@@ -170,6 +171,33 @@ namespace std {
     };
 }
 
+class Enemy {
+public:
+    // Constructor to initialize an enemy with a specified health and position
+    Enemy(int initialHealth, int inQ, int inR)
+        : health(initialHealth), q(inQ), r(inR) {}
+
+    // Function to reduce the enemy's health
+    void takeDamage(int damage) {
+        health -= damage;
+    }
+
+    // Function to move the enemy to a new position
+    void move(int newQ, int newR) {
+        q = newQ;
+        r = newR;
+    }
+
+    // Function to check if the enemy is still alive
+    bool isAlive() const {
+        return health > 0;
+    }
+private:
+    int health;
+    int q;
+    int r;
+};
+
 // Function for efficiently moving an npc object a given amount of tiles toward a specific point
 void moveNPC(int objX, int objY, int tgtX, int tgtY, int tiles) {
 
@@ -228,6 +256,8 @@ void handleInput() {
         }
         if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
             HandleMouseClick();
+        } else if (event.key.keysym.sym == SDLK_g) {
+            mapMode = !mapMode;
         }
     }
 }
@@ -277,15 +307,23 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
 }
 
 void render(const std::vector<SDL_Texture*>& textures) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
+    if (mapMode && textures[0] != nullptr) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
 
-    if (textures[0] != nullptr) {
         RenderTileMap(renderer, textures, 100, mapSet);
-    }
+        SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
+        SDL_RenderCopy(renderer, textures[1], nullptr, &plaOneDest);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        SDL_RenderClear(renderer);
 
-    SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
-    SDL_RenderCopy(renderer, textures[1], nullptr, &plaOneDest);
+        SDL_Rect attacker = { 50, 350, 253, 200 };
+        SDL_RenderCopy(renderer, textures[5], nullptr, &attacker);
+
+        SDL_Rect target = { 600, 50, 70, 50 };
+        SDL_RenderCopy(renderer, textures[6], nullptr, &target);
+    }
 
     SDL_RenderPresent(renderer);
 }
@@ -354,7 +392,9 @@ int main(int argc, char* argv[]) {
         "assets/ancp-male-std-one.png",
         "assets/active-tile-test.png",
         "assets/cvr-birch-test.png",
-        "assets/cvr-tree-test.png"
+        "assets/cvr-tree-test.png",
+        "assets/ancp-fight-test.png",
+        "assets/dog-bomb-test.png"
     };
     std::vector<SDL_Texture*> textures;
     for (const std::string& path : imagePaths) {
