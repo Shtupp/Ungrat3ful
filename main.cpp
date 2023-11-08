@@ -375,11 +375,22 @@ void render(const std::vector<SDL_Texture*>& textures) {
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
         SDL_RenderClear(renderer);
 
-        SDL_Rect attacker = { 50, 350, 253, 200 };
+        SDL_Rect attacker = { 20, 280, 380, 300};
         SDL_RenderCopy(renderer, textures[5], nullptr, &attacker);
 
-        SDL_Rect target = { 600, 50, 70, 50 };
+        SDL_Rect target = { 450, 50, 350, 250 };
         SDL_RenderCopy(renderer, textures[6], nullptr, &target);
+
+        SDL_Rect aa = { 400, 500, 50, 50 };
+        SDL_RenderCopy(renderer, textures[7], nullptr, &aa);
+        SDL_Rect ab = { 450, 500, 50, 50 };
+        SDL_RenderCopy(renderer, textures[8], nullptr, &ab);
+        SDL_Rect ac = { 500, 500, 50, 50 };
+        SDL_RenderCopy(renderer, textures[9], nullptr, &ac);
+        SDL_Rect ad = { 550, 500, 50, 50 };
+        SDL_RenderCopy(renderer, textures[10], nullptr, &ad);
+        SDL_Rect ae = { 600, 500, 50, 50 };
+        SDL_RenderCopy(renderer, textures[11], nullptr, &ae);
     }
 
     SDL_RenderPresent(renderer);
@@ -451,7 +462,12 @@ int main(int argc, char* argv[]) {
         "assets/cvr-birch-test.png",
         "assets/cvr-tree-test.png",
         "assets/ancp-fight-test.png",
-        "assets/dog-bomb-test.png"
+        "assets/dog-bomb-test.png",
+        "assets/pri-butt.png",
+        "assets/side-butt.png",
+        "assets/sword-butt.png",
+        "assets/lsd-butt.png",
+        "assets/hack-butt.png"
     };
     std::vector<SDL_Texture*> textures;
     for (const std::string& path : imagePaths) {
