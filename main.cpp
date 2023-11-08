@@ -34,6 +34,51 @@ void transformObj(int x, int y, int& objX, int& objY) {
     objY += y;
 }
 
+// Function to properly shift an object's row/col coordinates in the hex grid after a transformation
+// Currently configured to function properly in an odd-q layout, will update if my understanding of our hex layout was incorrect
+void updateRowsAndCols(int& objRow, int& objCol, bool up, bool right, bool upDir) {
+    if (up == true && right == false && upDir == false)
+        objCol++;
+    else if (up == false && right == false && upDir == false)
+        objCol--;
+    else if (right == true && upDir == true) {
+        if (objCol % 2 != 0) {
+            objCol++;
+        }
+        else {
+            objCol++;
+            objRow--;
+        }
+    }
+    else if (right == true && upDir == false) {
+        if (objCol % 2 != 0) {
+            objCol++;
+            objRow++;
+        }
+        else {
+            objCol++;
+        }
+    }
+    else if (right == false && upDir == false) {
+        if (objCol % 2 != 0) {
+            objCol--;
+            objRow++;
+        }
+        else {
+            objCol--;
+        }
+    }
+    else if (right == false && upDir == true) {
+        if (objCol % 2 != 0) {
+            objCol--;
+        }
+        else {
+            objCol--;
+            objRow--;
+        }
+    }
+}
+
 // https://www.redblobgames.com/grids/hexagons/implementation.html#hex
 // the int w parameter is used to distinguish between positions and vectors. Not useful yet but worth keeping around
 template <typename Number, int w>
@@ -199,7 +244,7 @@ private:
 };
 
 // Function for efficiently moving an npc object a given amount of tiles toward a specific point
-void moveNPC(int objX, int objY, int tgtX, int tgtY, int tiles) {
+void moveNPC(int objX, int objY, int tgtX, int tgtY, int tiles, int objCol, int objRow) {
 
     for (int i = 0; i <= tiles; i++) {
         if ((abs(tgtX - objX) < 75) && (abs(objY - tgtY) < 50)) {
@@ -210,18 +255,30 @@ void moveNPC(int objX, int objY, int tgtX, int tgtY, int tiles) {
             //This detection for direction is currently using the same method for determining the center of the hexagon as the player movement in HandleMousClick
             //(adding 47 to the y value of the object and 20 to the x value of the object)
             //This is because of the manner in which the standard human png is positioned on the hexagon, and may need be updated later to account for other objects
-            if ((tgtY > objY + 47) && (abs(tgtX - objX) < 50))
+            if ((tgtY > objY + 47) && (abs(tgtX - objX) < 50)) {
                 transformObj(0, 100, objX, objY);
-            else if ((tgtY < objY + 47) && (abs(tgtX - objX) < 50))
+                updateRowsAndCols(objRow, objCol, true, false, false);
+            }
+            else if ((tgtY < objY + 47) && (abs(tgtX - objX) < 50)) {
                 transformObj(0, -100, objX, objY);
-            else if ((tgtY > objY + 47) && (tgtX > objX + 20))
+                updateRowsAndCols(objRow, objCol, false, false, false);
+            }
+            else if ((tgtY > objY + 47) && (tgtX > objX + 20)) {
                 transformObj(75, 50, objX, objY);
-            else if ((tgtY < objY + 47) && (tgtX > objX + 20))
+                updateRowsAndCols(objRow, objCol, true, true, true);
+            }
+            else if ((tgtY < objY + 47) && (tgtX > objX + 20)) {
                 transformObj(75, -50, objX, objY);
-            else if ((tgtY < objY + 47) && (tgtX < objX + 20))
+                updateRowsAndCols(objRow, objCol, false, true, false);
+            }
+            else if ((tgtY < objY + 47) && (tgtX < objX + 20)) {
                 transformObj(-75, -50, objX, objY);
-            else if ((tgtY > objY + 47) && (tgtX < objX + 20))
+                updateRowsAndCols(objRow, objCol, false, false, false);
+            }
+            else if ((tgtY > objY + 47) && (tgtX < objX + 20)) {
                 transformObj(-75, 50, objX, objY);
+                updateRowsAndCols(objRow, objCol, true, false, true);
+            }
         }
     }
 
