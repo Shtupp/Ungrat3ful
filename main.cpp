@@ -7,6 +7,12 @@
 #include <unordered_set>
 #include <boost/functional/hash.hpp>
 #include <random>
+#include <SDL_ttf.h>
+
+//setup the random number gen
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_real_distribution<> dis(0.0, 1.0);
 
 SDL_Window* window;
 SDL_Renderer* renderer;
@@ -16,7 +22,9 @@ bool mapMode = true;
 int cursorX;
 int cursorY;
 std::array<int, 2> activePos;
-
+TTF_Font* fontReg;
+TTF_Font* fontBold;
+std::string hitChance;
 int plaOneX = 30;
 int plaOneY = 3;
 int playerX = 320; // Initial X position
@@ -315,6 +323,9 @@ void handleInput() {
             HandleMouseClick();
         } else if (event.key.keysym.sym == SDLK_g) {
             mapMode = !mapMode;
+            double luckyDouble = dis(gen);
+            int luckyInt = static_cast<int>(luckyDouble * 100);
+            hitChance = std::to_string(luckyInt);
         }
     }
 }
@@ -391,6 +402,42 @@ void render(const std::vector<SDL_Texture*>& textures) {
         SDL_RenderCopy(renderer, textures[10], nullptr, &ad);
         SDL_Rect ae = { 600, 500, 50, 50 };
         SDL_RenderCopy(renderer, textures[11], nullptr, &ae);
+        SDL_Rect af = { 650, 500, 50, 50 };
+        SDL_RenderCopy(renderer, textures[12], nullptr, &af);
+
+        int red = dis(gen) * 255;
+        int blu = dis(gen) * 255;
+
+        std::string hitMsg = "*** Chance to hit: CODE_PLACEHOLDE% ****";
+        SDL_Color blue;
+        blue.r = red;  // Red component (0 to 255)
+        blue.g = 0;    // Green component (0 to 255)
+        blue.b = blu;    // Blue component (0 to 255)
+        blue.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
+        size_t found = hitMsg.find("CODE_PLACEHOLDE");
+        if (found != std::string::npos) {
+            hitMsg.replace(found, 15, hitChance);
+        }
+
+        SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, hitMsg.c_str(), blue); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+        SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
+        SDL_Rect text1 = { 50, 0, 300, 50 };
+        SDL_Rect text2 = { 50, 50, 300, 50 };
+        SDL_Rect text3 = { 50, 100, 300, 50 };
+        SDL_Rect text4 = { 200, 150, 300, 50 };
+        SDL_Rect text5 = { 200, 200, 300, 50 };
+        SDL_Rect text6 = { 200, 250, 300, 50 };
+        SDL_Rect text7 = { 200, 300, 300, 50 };
+
+        SDL_RenderCopy(renderer, textTexture, NULL, &text1); // 'destinationRect' is where you want to render the text
+        SDL_RenderCopy(renderer, textTexture, NULL, &text2);
+        SDL_RenderCopy(renderer, textTexture, NULL, &text3);
+        SDL_RenderCopy(renderer, textTexture, NULL, &text4);
+        SDL_RenderCopy(renderer, textTexture, NULL, &text5);
+        SDL_RenderCopy(renderer, textTexture, NULL, &text6);
+        SDL_RenderCopy(renderer, textTexture, NULL, &text7);
+        SDL_DestroyTexture(textTexture);
     }
 
     SDL_RenderPresent(renderer);
@@ -404,11 +451,6 @@ std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int til
     numCols = 22;
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
-
-    //setup the random number gen
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
 
     // Initialize the array.
     for (int i = 0; i < numRows; i++) {
@@ -435,14 +477,17 @@ int main(int argc, char* argv[]) {
 
     // Create a window
     SDL_Window* window = SDL_CreateWindow("Based aspect ratio (4:3)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
-    //SDL_Window* window = SDL_CreateWindow("local man forced to fight robots on a hex grid",
-    //    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, 0);
 
     if (!window) {
         SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
-    //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+
+    if (TTF_Init() == -1) {
+        throw std::runtime_error("TrueType font support (TTF) failed to initialize");
+    }
+    fontReg = TTF_OpenFont("./ttf/Hack-Regular.tff", 24);
+    fontBold = TTF_OpenFont("./ttf/Hack-Bold.ttf", 24);
 
     // initialize the renderer variable (already declared globally)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -467,7 +512,8 @@ int main(int argc, char* argv[]) {
         "assets/side-butt.png",
         "assets/sword-butt.png",
         "assets/lsd-butt.png",
-        "assets/hack-butt.png"
+        "assets/hack-butt.png",
+        "assets/hack2-butt.png"
     };
     std::vector<SDL_Texture*> textures;
     for (const std::string& path : imagePaths) {
@@ -486,6 +532,9 @@ int main(int argc, char* argv[]) {
     }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    TTF_CloseFont(fontReg);
+    TTF_CloseFont(fontBold);
+    TTF_Quit();
     SDL_Quit();
 
     return 0;
