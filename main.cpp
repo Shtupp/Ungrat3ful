@@ -19,12 +19,18 @@ SDL_Renderer* renderer;
 SDL_Event event;
 bool isRunning = true;
 bool mapMode = true;
+enum shotStates {
+    HIT,
+    MISS,
+    PRESHOT 
+};
+shotStates shotState = PRESHOT;
 int cursorX;
 int cursorY;
 std::array<int, 2> activePos;
 TTF_Font* fontReg;
 TTF_Font* fontBold;
-std::string hitChance;
+int hitChance;
 int plaOneX = 30;
 int plaOneY = 3;
 int playerX = 320; // Initial X position
@@ -308,6 +314,12 @@ void HandleMouseClick() {
         transformObj(-75, 50, plaOneX, plaOneY);
 }
 
+bool attRes() {
+    double luckyDouble = dis(gen);
+    if (hitChance > static_cast<int>(luckyDouble * 100)) return false;
+    else return true;
+}
+
 void handleInput() {
     int newMouseX, newMouseY;
     SDL_GetMouseState(&newMouseX, &newMouseY);
@@ -318,14 +330,21 @@ void handleInput() {
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             isRunning = false;
-        }
-        if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
             HandleMouseClick();
         } else if (event.key.keysym.sym == SDLK_g) {
             mapMode = !mapMode;
             double luckyDouble = dis(gen);
-            int luckyInt = static_cast<int>(luckyDouble * 100);
-            hitChance = std::to_string(luckyInt);
+            hitChance = static_cast<int>(luckyDouble * 100);
+            shotState = PRESHOT;
+        } else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER) {
+            bool success = attRes();
+            std::cout << success << std::endl;
+            if (success) {
+                shotState = HIT;
+            } else {
+                shotState = MISS;
+            }
         }
     }
 }
@@ -374,6 +393,134 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
     }
 }
 
+SDL_Rect createRect(int row, int col, int textureWidth, int textureHeight) {
+    SDL_Rect rect;
+    rect.x = col * textureWidth;
+    rect.y = row * textureHeight;
+    rect.w = textureWidth;
+    rect.h = textureHeight;
+    return rect;
+}
+
+void renderFightUI(const std::vector<SDL_Texture*>& textures) {
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_Rect attacker = { 20, 280, 380, 300};
+    SDL_RenderCopy(renderer, textures[5], nullptr, &attacker);
+
+    SDL_Rect target = { 450, 50, 350, 250 };
+    SDL_RenderCopy(renderer, textures[6], nullptr, &target);
+
+    switch (shotState) {
+        case PRESHOT: {
+            SDL_Rect aa = { 400, 500, 50, 50 };
+            SDL_RenderCopy(renderer, textures[7], nullptr, &aa);
+            SDL_Rect ab = { 450, 500, 50, 50 };
+            SDL_RenderCopy(renderer, textures[8], nullptr, &ab);
+            SDL_Rect ac = { 500, 500, 50, 50 };
+            SDL_RenderCopy(renderer, textures[9], nullptr, &ac);
+            SDL_Rect ad = { 550, 500, 50, 50 };
+            SDL_RenderCopy(renderer, textures[10], nullptr, &ad);
+            SDL_Rect ae = { 600, 500, 50, 50 };
+            SDL_RenderCopy(renderer, textures[11], nullptr, &ae);
+            SDL_Rect af = { 650, 500, 50, 50 };
+            SDL_RenderCopy(renderer, textures[12], nullptr, &af);
+
+            int red = dis(gen) * 255;
+            int blu = dis(gen) * 255;
+
+            std::string hitMsg = "*** Chance to hit: CODE_PLACEHOLDE% ****";
+            SDL_Color blue;
+            blue.r = red;  // Red component (0 to 255)
+            blue.g = 0;    // Green component (0 to 255)
+            blue.b = blu;    // Blue component (0 to 255)
+            blue.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
+            size_t found = hitMsg.find("CODE_PLACEHOLDE");
+            if (found != std::string::npos) {
+                hitMsg.replace(found, 15, std::to_string(hitChance));
+            }
+
+            SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, hitMsg.c_str(), blue); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+            SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
+            SDL_Rect text1 = { 50, 0, 300, 50 };
+            SDL_Rect text2 = { 50, 50, 300, 50 };
+            SDL_Rect text3 = { 50, 100, 300, 50 };
+            SDL_Rect text4 = { 200, 150, 300, 50 };
+            SDL_Rect text5 = { 200, 200, 300, 50 };
+            SDL_Rect text6 = { 200, 250, 300, 50 };
+            SDL_Rect text7 = { 200, 300, 300, 50 };
+
+            SDL_RenderCopy(renderer, textTexture, NULL, &text1); // 'destinationRect' is where you want to render the text
+            SDL_RenderCopy(renderer, textTexture, NULL, &text2);
+            SDL_RenderCopy(renderer, textTexture, NULL, &text3);
+            SDL_RenderCopy(renderer, textTexture, NULL, &text4);
+            SDL_RenderCopy(renderer, textTexture, NULL, &text5);
+            SDL_RenderCopy(renderer, textTexture, NULL, &text6);
+            SDL_RenderCopy(renderer, textTexture, NULL, &text7);
+            SDL_DestroyTexture(textTexture);
+            break;
+        } case HIT: {
+            int blu = 255;
+
+            std::string hitMsg = "*** SUCCESS :) ****";
+            SDL_Color blue;
+            blue.r = 0;  // Red component (0 to 255)
+            blue.g = 0;    // Green component (0 to 255)
+            blue.b = blu;    // Blue component (0 to 255)
+            blue.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
+
+            SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, hitMsg.c_str(), blue); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+            SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
+            int textureWidth = 200;
+            int textureHeight = 50;
+            // Loop to render the grid of textures
+            for (int row = 0; row < numRows; ++row) {
+                for (int col = 0; col < numCols; ++col) {
+                    // Create SDL_Rect for the current position in the grid
+                    SDL_Rect currentRect = createRect(row, col, textureWidth, textureHeight);
+
+                    // Render the texture at the current position
+                    SDL_RenderCopy(renderer, textTexture, NULL, &currentRect);
+                }
+            }
+
+            SDL_DestroyTexture(textTexture);
+            break;
+        } case MISS: {
+            int redd = 255;
+
+            std::string hitMsg = "*** MISS :( ****";
+            SDL_Color red;
+            red.r = redd;  // Red component (0 to 255)
+            red.g = 0;    // Green component (0 to 255)
+            red.b = 0;    // Blue component (0 to 255)
+            red.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
+
+            SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, hitMsg.c_str(), red); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+            SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
+            int textureWidth = 200;
+            int textureHeight = 50;
+            // Loop to render the grid of textures
+            for (int row = 0; row < numRows; ++row) {
+                for (int col = 0; col < numCols; ++col) {
+                    // Create SDL_Rect for the current position in the grid
+                    SDL_Rect currentRect = createRect(row, col, textureWidth, textureHeight);
+
+                    // Render the texture at the current position
+                    SDL_RenderCopy(renderer, textTexture, NULL, &currentRect);
+                }
+            }
+
+            SDL_DestroyTexture(textTexture);
+            break;
+        }
+    }
+}
+
 void render(const std::vector<SDL_Texture*>& textures) {
     if (mapMode && textures[0] != nullptr) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -383,61 +530,7 @@ void render(const std::vector<SDL_Texture*>& textures) {
         SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
         SDL_RenderCopy(renderer, textures[1], nullptr, &plaOneDest);
     } else {
-        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        SDL_RenderClear(renderer);
-
-        SDL_Rect attacker = { 20, 280, 380, 300};
-        SDL_RenderCopy(renderer, textures[5], nullptr, &attacker);
-
-        SDL_Rect target = { 450, 50, 350, 250 };
-        SDL_RenderCopy(renderer, textures[6], nullptr, &target);
-
-        SDL_Rect aa = { 400, 500, 50, 50 };
-        SDL_RenderCopy(renderer, textures[7], nullptr, &aa);
-        SDL_Rect ab = { 450, 500, 50, 50 };
-        SDL_RenderCopy(renderer, textures[8], nullptr, &ab);
-        SDL_Rect ac = { 500, 500, 50, 50 };
-        SDL_RenderCopy(renderer, textures[9], nullptr, &ac);
-        SDL_Rect ad = { 550, 500, 50, 50 };
-        SDL_RenderCopy(renderer, textures[10], nullptr, &ad);
-        SDL_Rect ae = { 600, 500, 50, 50 };
-        SDL_RenderCopy(renderer, textures[11], nullptr, &ae);
-        SDL_Rect af = { 650, 500, 50, 50 };
-        SDL_RenderCopy(renderer, textures[12], nullptr, &af);
-
-        int red = dis(gen) * 255;
-        int blu = dis(gen) * 255;
-
-        std::string hitMsg = "*** Chance to hit: CODE_PLACEHOLDE% ****";
-        SDL_Color blue;
-        blue.r = red;  // Red component (0 to 255)
-        blue.g = 0;    // Green component (0 to 255)
-        blue.b = blu;    // Blue component (0 to 255)
-        blue.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
-        size_t found = hitMsg.find("CODE_PLACEHOLDE");
-        if (found != std::string::npos) {
-            hitMsg.replace(found, 15, hitChance);
-        }
-
-        SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, hitMsg.c_str(), blue); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
-        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
-        SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
-        SDL_Rect text1 = { 50, 0, 300, 50 };
-        SDL_Rect text2 = { 50, 50, 300, 50 };
-        SDL_Rect text3 = { 50, 100, 300, 50 };
-        SDL_Rect text4 = { 200, 150, 300, 50 };
-        SDL_Rect text5 = { 200, 200, 300, 50 };
-        SDL_Rect text6 = { 200, 250, 300, 50 };
-        SDL_Rect text7 = { 200, 300, 300, 50 };
-
-        SDL_RenderCopy(renderer, textTexture, NULL, &text1); // 'destinationRect' is where you want to render the text
-        SDL_RenderCopy(renderer, textTexture, NULL, &text2);
-        SDL_RenderCopy(renderer, textTexture, NULL, &text3);
-        SDL_RenderCopy(renderer, textTexture, NULL, &text4);
-        SDL_RenderCopy(renderer, textTexture, NULL, &text5);
-        SDL_RenderCopy(renderer, textTexture, NULL, &text6);
-        SDL_RenderCopy(renderer, textTexture, NULL, &text7);
-        SDL_DestroyTexture(textTexture);
+        renderFightUI(textures);
     }
 
     SDL_RenderPresent(renderer);
