@@ -185,8 +185,11 @@ struct Layout {
 // https://www.redblobgames.com/grids/hexagons/implementation.html#hex-to-pixel
 Point hex_to_pixel(Layout layout, Hex h) {
     const Orientation& M = layout.orientation;
-    double x = (M.f0 * h.q + M.f1 * h.r) * layout.size.x;
-    double y = (M.f2 * h.q + M.f3 * h.r) * layout.size.y;
+    //double x = (M.f0 * h.q + M.f1 * h.r) * layout.size.x;
+    double x = layout.size.x * ( 3./2 * h.q);
+    double y = layout.size.y * (sqrt(3)/2 * (h.q%2) + sqrt(3) * h.r);
+
+    //double y = (M.f2 * h.q + M.f3 * h.r) * layout.size.y;
     return Point(x + layout.origin.x, y + layout.origin.y);
 }
 
@@ -195,8 +198,12 @@ FracHex pixel_to_hex(Layout layout, Point p) {
     const Orientation& M = layout.orientation;
     Point pt = Point((p.x - layout.origin.x) / layout.size.x,
                      (p.y - layout.origin.y) / layout.size.y);
-    double q = M.b0 * pt.x + M.b1 * pt.y;
-    double r = M.b2 * pt.x + M.b3 * pt.y;
+    //double q = M.b0 * pt.x + M.b1 * pt.y;
+    //double r = M.b2 * pt.x + M.b3 * pt.y;
+    double q = ( 2./3 * pt.x);
+    double r = (-1./3 * (static_cast<int>(pt.x)%2) + sqrt(3)/3 * pt.y);
+
+    //double r = M.b2 * pt.x + (static_cast<int>(M.b3)% 2) * pt.y;
     return FracHex(q, r, -q - r);
 }
 
@@ -339,7 +346,6 @@ void handleInput() {
             shotState = PRESHOT;
         } else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER) {
             bool success = attRes();
-            std::cout << success << std::endl;
             if (success) {
                 shotState = HIT;
             } else {
@@ -371,6 +377,7 @@ SDL_Texture* LoadImageAsTexture(const char* imagePath) {
 }
 void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures, int tileWidth, std::unordered_set<Hex, HexHash> tileMap) {
     SDL_Rect destRect;
+    SDL_Rect textRect;
 
 
     // notice the values 50,57 for the tile size. I found these values through trial and error. We need to find a way to calculate these values based on the tile .png dimensions, or etc.
@@ -381,6 +388,7 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
         int x = p.x; //converting these doubles to ints
         int y = p.y;
         destRect = {x, y, 100, 100};
+        textRect = {x+10, y+35, 80, 30};
         SDL_RenderCopy(renderer, textures[0], nullptr, &destRect);
         if (tile == hex_round(pixel_to_hex(flatLayout, Point(cursorX-50, cursorY-50)))) {
             SDL_RenderCopy(renderer, textures[2], nullptr, &destRect);
@@ -390,6 +398,19 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
         } else if (tile.decoration == "tree") {
             SDL_RenderCopy(renderer, textures[4], nullptr, &destRect);
         }
+
+        std::string tileCoords= std::to_string(tile.q) + "," + std::to_string(tile.r) + "," + std::to_string(tile.s);
+        SDL_Color black;
+        black.r = 255;  // Red component (0 to 255)
+        black.g = 255;    // Green component (0 to 255)
+        black.b = 255;    // Blue component (0 to 255)
+        black.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
+        SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, tileCoords.c_str(), black); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+        SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
+
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect); // 'destinationRect' is where you want to render the text
+        SDL_DestroyTexture(textTexture);
     }
 }
 
