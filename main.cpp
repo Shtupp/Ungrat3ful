@@ -35,7 +35,7 @@ int plaOneX = 30;
 int plaOneY = 3;
 int playerX = 320; // Initial X position
 int playerY = 240; // Initial Y position
-
+bool fullscreen = false;
 int numCols;
 int numRows;
 
@@ -327,7 +327,7 @@ bool attRes() {
     else return true;
 }
 
-void handleInput(SDL_Window* window, bool fullscreen) {
+void handleInput(SDL_Window* window) {
     int newMouseX, newMouseY;
     SDL_GetMouseState(&newMouseX, &newMouseY);
     if (cursorX != newMouseX || cursorY != newMouseY) {
@@ -351,7 +351,7 @@ void handleInput(SDL_Window* window, bool fullscreen) {
             } else {
                 shotState = MISS;
             }
-        } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
             if (fullscreen) {
                 SDL_SetWindowFullscreen(window, 0); // Switch to windowed mode
                 fullscreen = false;
@@ -591,7 +591,6 @@ std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int til
 }
 
 int main(int argc, char* argv[]) {
-    bool fullscreen = false;
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
@@ -645,7 +644,7 @@ int main(int argc, char* argv[]) {
     }
 
     while (isRunning) {
-        handleInput(window, fullscreen);
+        handleInput(window);
         render(textures);
     }
 
