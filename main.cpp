@@ -334,11 +334,13 @@ void handleInput(SDL_Window* window) {
         cursorX = newMouseX;
         cursorY = newMouseY;
     }
+    std::cout << "mouse x: " << cursorX << std::endl;
+    std::cout << "mouse y: " << cursorY << std::endl;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             isRunning = false;
         } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-            HandleMouseClick();
+            //HandleMouseClick();
         } else if (event.key.keysym.sym == SDLK_g) {
             mapMode = !mapMode;
             double luckyDouble = dis(gen);
@@ -397,10 +399,13 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
         int y = p.y;
         destRect = {x, y, 100, 100};
         textRect = {x+10, y+35, 80, 30};
+
         SDL_RenderCopy(renderer, textures[0], nullptr, &destRect);
+
         if (tile == hex_round(pixel_to_hex(flatLayout, Point(cursorX-50, cursorY-50)))) {
             SDL_RenderCopy(renderer, textures[2], nullptr, &destRect);
         }
+
         if (tile.decoration == "birch") {
             SDL_RenderCopy(renderer, textures[3], nullptr, &destRect);
         } else if (tile.decoration == "tree") {
@@ -413,12 +418,19 @@ void RenderTileMap(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& text
         black.g = 255;    // Green component (0 to 255)
         black.b = 255;    // Blue component (0 to 255)
         black.a = 255;  // Alpha (transparency) component (0 to 255, 255 is fully opaque)
+                        
         SDL_Surface* textSurface = TTF_RenderText_Solid(fontBold, tileCoords.c_str(), black); // textColor is an SDL_Color SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
-        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
-        SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
 
-        SDL_RenderCopy(renderer, textTexture, NULL, &textRect); // 'destinationRect' is where you want to render the text
-        SDL_DestroyTexture(textTexture);
+        if (textSurface != nullptr) {
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); // 'renderer' is your SDL_Renderer
+                                                                                            
+            if (textTexture != nullptr) {
+                SDL_RenderCopy(renderer, textTexture, NULL, &textRect); // 'destinationRect' is where you want to render the text
+                SDL_DestroyTexture(textTexture);
+            }
+
+            SDL_FreeSurface(textSurface); // Free the surface, we don't need it anymore
+        }
     }
 }
 
@@ -556,8 +568,8 @@ void render(const std::vector<SDL_Texture*>& textures) {
         SDL_RenderClear(renderer);
 
         RenderTileMap(renderer, textures, 100, mapSet);
-        SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
-        SDL_RenderCopy(renderer, textures[1], nullptr, &plaOneDest);
+        //SDL_Rect plaOneDest = { plaOneX, plaOneY, 41, 94 };
+        //SDL_RenderCopy(renderer, textures[1], nullptr, &plaOneDest);
     } else {
         renderFightUI(textures);
     }
@@ -569,8 +581,8 @@ std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int til
     std::unordered_set<Hex, HexHash> map;
     //numRows = winHeight / tileDem;
     //numCols = (winWidth / tileDem);
-    numRows = 22;
-    numCols = 22;
+    numCols = 10;
+    numRows = 5;
     std::cout << "Number of rows: " << numRows << std::endl;
     std::cout << "Number of columns: " << numCols << std::endl;
 
@@ -582,8 +594,8 @@ std::unordered_set<Hex, HexHash> initMapSet(int winWidth, int winHeight, int til
             int s = -i-j;
             Hex tempHex(i, j, s);
             double ranVal = dis(gen);
-            if (ranVal > 0.9) tempHex.decoration = "birch";
-            else if (ranVal > 0.7) tempHex.decoration = "tree";
+            //if (ranVal > 0.9) tempHex.decoration = "birch";
+            //else if (ranVal > 0.7) tempHex.decoration = "tree";
             map.insert(tempHex);
         }
     }
@@ -623,7 +635,7 @@ int main(int argc, char* argv[]) {
 
     //loading textures into the texture vector :)
     std::vector<std::string> imagePaths = {
-        "assets/tile-test.png",
+        "assets/tile-test-blue.png",
         "assets/ancp-male-std-one.png",
         "assets/active-tile-test.png",
         "assets/cvr-birch-test.png",
