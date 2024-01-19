@@ -56,3 +56,10 @@ Medic:
 Can heal adjacent units
 medic used anything but bandages to heal units. All healing drugs cause debuffs to the healed unit.
 High health and average movement
+
+######some g++ linking commands:
+
+works on arch virtual machine:
+g++ main.cpp -I/usr/include/SDL2/ -lSDL2 -lSDL2_image -lSDL2_ttf
+work on arch WSL (but arch wsl cannot run the executable binary):
+g++ main.cpp $(pkg-config --cflags --libs sdl2) -lSDL_image -lSDL_ttf
